@@ -198,7 +198,6 @@
                             <th class="py-3">MÜŞTERİ</th>
                         }
                         <th class="py-3">OLUŞTURMA TARİHİ</th>
-                        <th class="py-3">ÜSTLENEN</th>
                         <th class="py-3">DURUM</th>
                         <th class="py-3 text-end pe-4">İŞLEM</th>
                     </tr>
@@ -207,7 +206,7 @@
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="@(User.IsInRole("Admin") ? 9 : 8)" class="text-center py-5 text-muted">
+                            <td colspan="@(User.IsInRole("Admin") ? 8 : 7)" class="text-center py-5 text-muted">
                                 <span class="fs-2 d-block mb-3"><i class="bi bi-inbox"></i></span> Destek talebi bulunmuyor.
                             </td>
                         </tr>
@@ -245,18 +244,6 @@
                                     <td class="customer-cell fw-semibold text-secondary">@item.CustomerName</td>
                                 }
                                 <td class="text-muted">@item.CreatedDate.ToTurkeyTime().ToString("dd MMM yyyy HH:mm")</td>
-                                <td>
-                                    @if (!string.IsNullOrEmpty(item.AssignedAgent))
-                                    {
-                                        <span class="badge fw-semibold px-2.5 py-1.5 border rounded-pill" style="color: #4338ca; background-color: #e0e7ff; border: 1px solid #c7d2fe;">
-                                            <i class="bi bi-person-circle"></i> @item.AssignedAgent
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">Atanmadı</span>
-                                    }
-                                </td>
                                 <td class="status-cell">
                                     @if(item.Status == TicketSistemi.Models.TicketStatus.Acik)
                                     {

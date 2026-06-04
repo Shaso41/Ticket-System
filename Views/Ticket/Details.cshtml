@@ -226,20 +226,6 @@
                             <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | <i class="bi bi-calendar3"></i> Tarih: @Model.CreatedDate.ToTurkeyTime().ToString("dd MMMM yyyy HH:mm")
                         </p>
                     </div>
-                    
-                    <div class="text-md-end">
-                        <span class="text-secondary d-block small mb-1">Üstlenen Temsilci</span>
-                        @if (!string.IsNullOrEmpty(Model.AssignedAgent))
-                        {
-                            <span class="badge fw-semibold px-3 py-2 border rounded-pill" style="color: #4338ca; background-color: #e0e7ff; border: 1px solid #c7d2fe; font-size: 0.9rem;">
-                                <i class="bi bi-person-circle"></i> @Model.AssignedAgent
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted small">Henüz Atanmadı</span>
-                        }
-                    </div>
                 </div>
 
                 <div class="card-body p-4">
@@ -456,33 +442,18 @@
                             <div class="timeline-desc">Sorun kaydı @Model.CustomerName tarafından sisteme iletildi.</div>
                         </li>
 
-                        @if (!string.IsNullOrEmpty(Model.AssignedAgent))
-                        {
-                            <li class="timeline-item completed">
-                                <div class="timeline-title">Temsilci Atandı</div>
-                                <div class="timeline-desc">Müşteri temsilcisi <strong>@Model.AssignedAgent</strong> bu talebi üstlendi.</div>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="timeline-item active">
-                                <div class="timeline-title">Atama Bekleniyor</div>
-                                <div class="timeline-desc">Bir destek elemanının biletinizi üstlenmesi bekleniyor.</div>
-                            </li>
-                        }
-
                         @if (Model.Messages != null && Model.Messages.Any(m => string.Equals(m.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
                         {
                             <li class="timeline-item completed">
                                 <div class="timeline-title">Yanıt İletildi</div>
-                                <div class="timeline-desc">Destek temsilcisi çözüm detaylarını içeren bir yanıt bıraktı.</div>
+                                <div class="timeline-desc">Destek temsilcisi biletinize yanıt bıraktı.</div>
                             </li>
                         }
-                        else if (!string.IsNullOrEmpty(Model.AssignedAgent))
+                        else if (Model.Status == TicketSistemi.Models.TicketStatus.Acik)
                         {
                             <li class="timeline-item active">
-                                <div class="timeline-title">İnceleme Aşamasında</div>
-                                <div class="timeline-desc">Temsilci şu anda biletinizi inceliyor.</div>
+                                <div class="timeline-title">İnceleme Bekleniyor</div>
+                                <div class="timeline-desc">Talebiniz destek temsilcileri tarafından incelenmek üzere sırada bekliyor.</div>
                             </li>
                         }
 
