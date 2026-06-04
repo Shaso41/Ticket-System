@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
@@ -6,25 +7,27 @@ using System.Threading;
 using System.Threading.Tasks;
 using TicketSistemi.Data;
 using TicketSistemi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace TicketSistemi.Jobs
 {
     public class AutoCloseTicketsJob : BackgroundService
     {
         private readonly ILogger<AutoCloseTicketsJob> _logger;
-        // Run every 12 hours (twice a day)
+        private readonly IServiceScopeFactory _scopeFactory;
+        
         private readonly TimeSpan _checkInterval = TimeSpan.FromHours(12);
 
-        public AutoCloseTicketsJob(ILogger<AutoCloseTicketsJob> logger)
+        public AutoCloseTicketsJob(ILogger<AutoCloseTicketsJob> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Biletleri otomatik kapatma arka plan servisi başlatıldı.");
 
-            // Wait a few seconds initially to let the application start up fully
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
@@ -39,7 +42,7 @@ namespace TicketSistemi.Jobs
                 try
                 {
                     _logger.LogInformation("Otomatik bilet kapatma kontrolü çalıştırılıyor...");
-                    AutoCloseSolvedTickets();
+                    await AutoCloseSolvedTicketsAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
@@ -59,18 +62,21 @@ namespace TicketSistemi.Jobs
             _logger.LogInformation("Biletleri otomatik kapatma arka plan servisi durduruldu.");
         }
 
-        private void AutoCloseSolvedTickets()
+        private async Task AutoCloseSolvedTicketsAsync(CancellationToken stoppingToken)
         {
-            var tickets = JsonDbManager.GetTickets();
-            bool isAnyUpdated = false;
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var now = DateTime.Now;
 
-            // Cozuldu (Solved) status tickets
-            var solvedTickets = tickets.Where(t => t.Status == TicketStatus.Cozuldu).ToList();
+            var solvedTickets = await context.Tickets
+                .Include(t => t.Messages)
+                .Where(t => t.Status == TicketStatus.Cozuldu)
+                .ToListAsync(stoppingToken);
+
+            bool isAnyUpdated = false;
 
             foreach (var ticket in solvedTickets)
             {
-                // Inactivity check: 3 days (3 * 24 hours)
                 var lastActivity = ticket.Messages != null && ticket.Messages.Any()
                     ? ticket.Messages.Max(m => m.SentDate)
                     : ticket.CreatedDate;
@@ -79,7 +85,6 @@ namespace TicketSistemi.Jobs
                 {
                     ticket.Status = TicketStatus.Kapandi;
                     
-                    // Add system message if messages list is available
                     if (ticket.Messages == null)
                     {
                         ticket.Messages = new System.Collections.Generic.List<TicketMessage>();
@@ -100,7 +105,7 @@ namespace TicketSistemi.Jobs
 
             if (isAnyUpdated)
             {
-                JsonDbManager.SaveTickets(tickets);
+                await context.SaveChangesAsync(stoppingToken);
                 _logger.LogInformation("Otomatik kapatılan biletler kaydedildi.");
             }
             else

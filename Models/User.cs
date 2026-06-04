@@ -18,5 +18,7 @@ namespace TicketSistemi.Models
         public string Role { get; set; } = "User"; // "Admin" or "User"
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        public List<Ticket> Tickets { get; set; } = new List<Ticket>();
     }
 }

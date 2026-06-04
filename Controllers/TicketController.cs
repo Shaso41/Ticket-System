@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Threading.Tasks;
 using System;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Collections.Generic;
 
 namespace TicketSistemi.Controllers
 {
@@ -20,12 +23,14 @@ namespace TicketSistemi.Controllers
         private readonly IHubContext<NotificationHub> _hubContext;
         private readonly ILogger<TicketController> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly AppDbContext _context;
 
-        public TicketController(IHubContext<NotificationHub> hubContext, ILogger<TicketController> logger, IWebHostEnvironment env)
+        public TicketController(IHubContext<NotificationHub> hubContext, ILogger<TicketController> logger, IWebHostEnvironment env, AppDbContext context)
         {
             _hubContext = hubContext;
             _logger = logger;
             _env = env;
+            _context = context;
         }
 
         private async Task<(string? path, string? fileName)> SaveAttachmentAsync(IFormFile? file)
@@ -35,7 +40,7 @@ namespace TicketSistemi.Controllers
                 return (null, null);
             }
 
-            // 10MB limit (10 * 1024 * 1024 bytes)
+            // 10MB limit
             const long maxFileSize = 10485760;
             if (file.Length > maxFileSize)
             {
@@ -66,29 +71,35 @@ namespace TicketSistemi.Controllers
             return ("/uploads/" + uniqueFileName, file.FileName);
         }
 
-        public IActionResult Index(TicketStatus? status)
+        public async Task<IActionResult> Index(TicketStatus? status)
         {
-            var username = User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
-                return RedirectToAction("Login", "Account");
+                return RedirectToAction("Logout", "Account");
             }
 
             var isAdmin = User.IsInRole("Admin");
-            var tickets = JsonDbManager.GetTickets();
+            var query = _context.Tickets.AsQueryable();
 
             if (!isAdmin)
             {
-                tickets = tickets.Where(t => string.Equals(t.CustomerName, username, StringComparison.OrdinalIgnoreCase)).ToList();
+                query = query.Where(t => t.UserId == userId);
             }
 
-            ViewBag.TotalCount = tickets.Count;
-            ViewBag.OpenCount = tickets.Count(t => t.Status == TicketStatus.Acik);
-            ViewBag.SolvedCount = tickets.Count(t => t.Status == TicketStatus.Cozuldu);
-            ViewBag.ClosedCount = tickets.Count(t => t.Status == TicketStatus.Kapandi);
+            var allTickets = await query.ToListAsync();
 
-            var sortedTickets = tickets.OrderByDescending(t => t.CreatedDate).ToList();
+            ViewBag.TotalCount = allTickets.Count;
+            ViewBag.OpenCount = allTickets.Count(t => t.Status == TicketStatus.Acik);
+            ViewBag.SolvedCount = allTickets.Count(t => t.Status == TicketStatus.Cozuldu);
+            ViewBag.ClosedCount = allTickets.Count(t => t.Status == TicketStatus.Kapandi);
 
+            if (status.HasValue)
+            {
+                allTickets = allTickets.Where(t => t.Status == status.Value).ToList();
+            }
+
+            var sortedTickets = allTickets.OrderByDescending(t => t.CreatedDate).ToList();
             ViewBag.CurrentStatus = status;
             
             return View(sortedTickets);
@@ -105,12 +116,15 @@ namespace TicketSistemi.Controllers
         public async Task<IActionResult> Create(Ticket newTicket, IFormFile? attachment)
         {
             var username = User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
                 return RedirectToAction("Login", "Account");
             }
 
             newTicket.CustomerName = username;
+            newTicket.UserId = userId;
             ModelState.Remove("CustomerName");
 
             if (ModelState.IsValid)
@@ -130,15 +144,11 @@ namespace TicketSistemi.Controllers
 
                 newTicket.AttachmentPath = attachmentPath;
                 newTicket.AttachmentFileName = attachmentFileName;
-
                 newTicket.Description = TicketSistemi.Utils.HtmlSanitizer.Sanitize(newTicket.Description);
+                newTicket.CreatedDate = DateTime.Now;
 
-                var tickets = JsonDbManager.GetTickets();
-                
-                newTicket.Id = tickets.Any() ? tickets.Max(t => t.Id) + 1 : 1;
-                
-                tickets.Add(newTicket);
-                JsonDbManager.SaveTickets(tickets);
+                _context.Tickets.Add(newTicket);
+                await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Yeni ticket eklendi (ID: {Id}, Başlık: {Title}) Müşteri: {CustomerName}", newTicket.Id, newTicket.Title, username);
 
@@ -160,16 +170,14 @@ namespace TicketSistemi.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public IActionResult Claim(int id)
+        public async Task<IActionResult> Claim(int id)
         {
-            var tickets = JsonDbManager.GetTickets();
-            var ticketIndex = tickets.FindIndex(t => t.Id == id);
-            
-            if (ticketIndex == -1) return NotFound();
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return NotFound();
             
             var agentName = User.Identity?.Name ?? "Destek Elemanı";
-            tickets[ticketIndex].AssignedAgent = agentName;
-            JsonDbManager.SaveTickets(tickets);
+            ticket.AssignedAgent = agentName;
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Ticket {Id} admin {AdminName} tarafından üstlenildi.", id, agentName);
             
@@ -179,11 +187,9 @@ namespace TicketSistemi.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var tickets = JsonDbManager.GetTickets();
-            var ticket = tickets.FirstOrDefault(t => t.Id == id);
-            
+            var ticket = await _context.Tickets.Include(t => t.Messages).FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return NotFound();
 
             if (!string.IsNullOrEmpty(ticket.AttachmentPath))
@@ -210,8 +216,8 @@ namespace TicketSistemi.Controllers
                 }
             }
             
-            tickets.Remove(ticket);
-            JsonDbManager.SaveTickets(tickets);
+            _context.Tickets.Remove(ticket);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Ticket {Id} ({Title}) silindi. Sileyen: {AdminName}", id, ticket.Title, User.Identity?.Name);
             
@@ -219,55 +225,30 @@ namespace TicketSistemi.Controllers
         }
 
         [HttpGet]
-        public IActionResult Details(int id)
+        public async Task<IActionResult> Details(int id)
         {
-            var username = User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            var tickets = JsonDbManager.GetTickets();
-            var ticket = tickets.FirstOrDefault(t => t.Id == id);
-
+            var ticket = await _context.Tickets.Include(t => t.Messages).FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null) return NotFound();
 
             var isAdmin = User.IsInRole("Admin");
-            if (!isAdmin && !string.Equals(ticket.CustomerName, username, StringComparison.OrdinalIgnoreCase))
+            if (!isAdmin && ticket.UserId != userId)
             {
                 return Forbid();
             }
 
+            // İlk açılış mesajını otomatik olarak gösterelim (eğer mesaj yoksa bile View'da bunu işleyebiliriz,
+            // ama fiziksel olarak ilk mesajı yaratmak için bir mantık yazmışsınız, bunu DB'de tutmayıp sadece
+            // gösterim anında da yapabiliriz veya ilk Ticket açılırken TicketMessage yaratılabilir.
+            // Şimdilik Details View'ının çalışması için mesaj listesi boş olmasın diye oluşturabiliriz.
             if (ticket.Messages == null)
             {
                 ticket.Messages = new List<TicketMessage>();
-            }
-
-            if (!ticket.Messages.Any())
-            {
-                
-                ticket.Messages.Add(new TicketMessage
-                {
-                    Sender = ticket.CustomerName,
-                    Role = "User",
-                    Message = ticket.Description,
-                    SentDate = ticket.CreatedDate,
-                    AttachmentPath = ticket.AttachmentPath,
-                    AttachmentFileName = ticket.AttachmentFileName
-                });
-
-                if (!string.IsNullOrEmpty(ticket.SupportReply))
-                {
-                    ticket.Messages.Add(new TicketMessage
-                    {
-                        Sender = ticket.AssignedAgent ?? "Destek Elemanı",
-                        Role = "Admin",
-                        Message = ticket.SupportReply,
-                        SentDate = ticket.CreatedDate.AddMinutes(30)
-                    });
-                }
-
-                JsonDbManager.SaveTickets(tickets);
             }
 
             return View(ticket);
@@ -278,71 +259,33 @@ namespace TicketSistemi.Controllers
         public async Task<IActionResult> Details(int id, string message, TicketStatus? status, IFormFile? attachment, TicketCategory? category, TicketPriority? priority)
         {
             var username = User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
             {
                 return RedirectToAction("Login", "Account");
             }
 
-            var tickets = JsonDbManager.GetTickets();
-            var ticketIndex = tickets.FindIndex(t => t.Id == id);
+            var ticket = await _context.Tickets.Include(t => t.Messages).FirstOrDefaultAsync(t => t.Id == id);
+            if (ticket == null) return NotFound();
 
-            if (ticketIndex == -1) return NotFound();
-
-            var ticket = tickets[ticketIndex];
             var isAdmin = User.IsInRole("Admin");
 
-            if (!isAdmin && !string.Equals(ticket.CustomerName, username, StringComparison.OrdinalIgnoreCase))
+            if (!isAdmin && ticket.UserId != userId)
             {
                 return Forbid();
             }
 
-            if (ticket.Messages == null)
-            {
-                ticket.Messages = new List<TicketMessage>();
-            }
-            if (!ticket.Messages.Any())
-            {
-                ticket.Messages.Add(new TicketMessage
-                {
-                    Sender = ticket.CustomerName,
-                    Role = "User",
-                    Message = ticket.Description,
-                    SentDate = ticket.CreatedDate,
-                    AttachmentPath = ticket.AttachmentPath,
-                    AttachmentFileName = ticket.AttachmentFileName
-                });
-                if (!string.IsNullOrEmpty(ticket.SupportReply))
-                {
-                    ticket.Messages.Add(new TicketMessage
-                    {
-                        Sender = ticket.AssignedAgent ?? "Destek Elemanı",
-                        Role = "Admin",
-                        Message = ticket.SupportReply,
-                        SentDate = ticket.CreatedDate.AddMinutes(30)
-                    });
-                }
-            }
-
             var oldCategory = ticket.Category;
             var oldPriority = ticket.Priority;
+            var oldStatus = ticket.Status;
+
             if (isAdmin)
             {
-                if (category.HasValue)
-                {
-                    ticket.Category = category.Value;
-                }
-                if (priority.HasValue)
-                {
-                    ticket.Priority = priority.Value;
-                }
-                
-                if (string.IsNullOrEmpty(ticket.AssignedAgent))
-                {
-                    ticket.AssignedAgent = username;
-                }
+                if (category.HasValue) ticket.Category = category.Value;
+                if (priority.HasValue) ticket.Priority = priority.Value;
+                if (string.IsNullOrEmpty(ticket.AssignedAgent)) ticket.AssignedAgent = username;
             }
-
-            var oldStatus = ticket.Status;
 
             if (!string.IsNullOrWhiteSpace(message) || (attachment != null && attachment.Length > 0))
             {
@@ -361,6 +304,7 @@ namespace TicketSistemi.Controllers
 
                 var newMessage = new TicketMessage
                 {
+                    TicketId = ticket.Id,
                     Sender = username,
                     Role = isAdmin ? "Admin" : "User",
                     Message = !string.IsNullOrWhiteSpace(message) ? TicketSistemi.Utils.HtmlSanitizer.Sanitize(message.Trim()) : "",
@@ -368,89 +312,66 @@ namespace TicketSistemi.Controllers
                     AttachmentPath = attachmentPath,
                     AttachmentFileName = attachmentFileName
                 };
-                ticket.Messages.Add(newMessage);
+                
+                _context.TicketMessages.Add(newMessage);
 
-                if (isAdmin)
+                if (isAdmin && string.IsNullOrEmpty(ticket.AssignedAgent))
                 {
-                    ticket.SupportReply = newMessage.Message;
-                    
-                    if (string.IsNullOrEmpty(ticket.AssignedAgent))
-                    {
-                        ticket.AssignedAgent = username;
-                    }
+                    ticket.AssignedAgent = username;
                 }
-                else
+                else if (!isAdmin && (ticket.Status == TicketStatus.Cozuldu || ticket.Status == TicketStatus.Kapandi))
                 {
-                    
-                    if (ticket.Status == TicketStatus.Cozuldu || ticket.Status == TicketStatus.Kapandi)
-                    {
-                        ticket.Status = TicketStatus.Acik;
-                    }
+                    ticket.Status = TicketStatus.Acik;
                 }
 
                 _logger.LogInformation("Ticket {Id}'ye yanıt yazıldı. Yazan: {Username} ({Role})", id, username, isAdmin ? "Admin" : "User");
             }
 
-            if (status.HasValue)
+            if (status.HasValue && (isAdmin || status.Value == TicketStatus.Kapandi || status.Value == TicketStatus.Cozuldu || status.Value == TicketStatus.Acik))
             {
-                
-                if (isAdmin || status.Value == TicketStatus.Kapandi || status.Value == TicketStatus.Cozuldu || status.Value == TicketStatus.Acik)
+                ticket.Status = status.Value;
+            }
+
+            // Sistem mesajları (Kategori, Öncelik, Durum değişimi)
+            void AddSystemMessage(string msg)
+            {
+                _context.TicketMessages.Add(new TicketMessage
                 {
-                    ticket.Status = status.Value;
-                }
+                    TicketId = ticket.Id,
+                    Sender = "Sistem",
+                    Role = "Admin",
+                    Message = msg,
+                    SentDate = DateTime.Now
+                });
             }
 
             if (isAdmin && oldCategory != ticket.Category)
             {
-                ticket.Messages.Add(new TicketMessage
-                {
-                    Sender = "Sistem",
-                    Role = "Admin",
-                    Message = $"Kategori '{TicketSistemi.Models.EnumHelper.GetCategoryName(oldCategory)}' değerinden '{TicketSistemi.Models.EnumHelper.GetCategoryName(ticket.Category)}' değerine güncellendi.",
-                    SentDate = DateTime.Now
-                });
+                AddSystemMessage($"Kategori '{TicketSistemi.Models.EnumHelper.GetCategoryName(oldCategory)}' değerinden '{TicketSistemi.Models.EnumHelper.GetCategoryName(ticket.Category)}' değerine güncellendi.");
             }
 
             if (isAdmin && oldPriority != ticket.Priority)
             {
-                ticket.Messages.Add(new TicketMessage
-                {
-                    Sender = "Sistem",
-                    Role = "Admin",
-                    Message = $"Öncelik seviyesi '{TicketSistemi.Models.EnumHelper.GetPriorityName(oldPriority)}' değerinden '{TicketSistemi.Models.EnumHelper.GetPriorityName(ticket.Priority)}' değerine güncellendi.",
-                    SentDate = DateTime.Now
-                });
+                AddSystemMessage($"Öncelik seviyesi '{TicketSistemi.Models.EnumHelper.GetPriorityName(oldPriority)}' değerinden '{TicketSistemi.Models.EnumHelper.GetPriorityName(ticket.Priority)}' değerine güncellendi.");
             }
 
             if (oldStatus != ticket.Status)
             {
                 string oldStatusName = oldStatus == TicketStatus.Acik ? "Açık" : oldStatus == TicketStatus.Cozuldu ? "Çözüldü" : "Kapalı";
                 string newStatusName = ticket.Status == TicketStatus.Acik ? "Açık" : ticket.Status == TicketStatus.Cozuldu ? "Çözüldü" : "Kapalı";
-                ticket.Messages.Add(new TicketMessage
-                {
-                    Sender = "Sistem",
-                    Role = "Admin",
-                    Message = $"Bilet durumu '{oldStatusName}' değerinden '{newStatusName}' değerine güncellendi.",
-                    SentDate = DateTime.Now
-                });
-
+                AddSystemMessage($"Bilet durumu '{oldStatusName}' değerinden '{newStatusName}' değerine güncellendi.");
                 _logger.LogInformation("Ticket {Id} durumu {OldStatus} -> {NewStatus} yapıldı. Yapan: {Username}", id, oldStatus, ticket.Status, username);
             }
 
-            JsonDbManager.SaveTickets(tickets);
+            await _context.SaveChangesAsync();
 
+            // Bildirimler
             if (!string.IsNullOrWhiteSpace(message) || (attachment != null && attachment.Length > 0))
             {
                 if (isAdmin)
-                {
-                    
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebinize yeni bir yanıt eklendi! Konu: {ticket.Title}", "User");
-                }
                 else
-                {
-                    
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebe müşteri tarafından yeni yanıt yazıldı! Konu: {ticket.Title}", "Admin");
-                }
             }
             else if (status.HasValue && oldStatus != ticket.Status)
             {
@@ -463,9 +384,9 @@ namespace TicketSistemi.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
-            var tickets = JsonDbManager.GetTickets();
+            var tickets = await _context.Tickets.Include(t => t.Messages).ToListAsync();
 
             int totalTickets = tickets.Count;
             int openCount = tickets.Count(t => t.Status == TicketStatus.Acik);
@@ -508,7 +429,7 @@ namespace TicketSistemi.Controllers
             double avgReplies = 0;
             if (totalTickets > 0)
             {
-                avgReplies = tickets.Average(t => t.Messages != null ? Math.Max(0, t.Messages.Count - 1) : 0);
+                avgReplies = tickets.Average(t => t.Messages != null ? Math.Max(0, t.Messages.Count) : 0);
             }
 
             ViewBag.TotalTickets = totalTickets;

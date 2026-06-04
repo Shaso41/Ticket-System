@@ -57,9 +57,11 @@ namespace TicketSistemi.Models
         [Required(ErrorMessage = "Adınızı girmeniz zorunludur.")]
         public string CustomerName { get; set; } = string.Empty; 
         
+        public int UserId { get; set; }
+        public User? User { get; set; }
+
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public TicketStatus Status { get; set; } = TicketStatus.Acik;
-        public string? SupportReply { get; set; } 
         public string? AssignedAgent { get; set; }
         
         public TicketCategory Category { get; set; } = TicketCategory.GenelSorular;
@@ -73,6 +75,10 @@ namespace TicketSistemi.Models
 
     public class TicketMessage
     {
+        public int Id { get; set; }
+        public int TicketId { get; set; }
+        public Ticket? Ticket { get; set; }
+
         public string Sender { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty; // "Admin" or "User"
         public string Message { get; set; } = string.Empty;

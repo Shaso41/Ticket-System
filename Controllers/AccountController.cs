@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TicketSistemi.Data;
@@ -16,10 +16,12 @@ namespace TicketSistemi.Controllers
     public class AccountController : Controller
     {
         private readonly ILogger<AccountController> _logger;
+        private readonly AppDbContext _context;
 
-        public AccountController(ILogger<AccountController> logger)
+        public AccountController(ILogger<AccountController> logger, AppDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         [HttpGet]
@@ -36,13 +38,19 @@ namespace TicketSistemi.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string username, string password)
         {
-            var users = JsonDbManager.GetUsers();
-            var user = users.FirstOrDefault(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ViewBag.ErrorMessage = "Kullanıcı adı ve şifre zorunludur!";
+                return View();
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
 
             if (user != null && PasswordHelper.VerifyPassword(user.Username, user.PasswordHash, password))
             {
                 var claims = new List<Claim>
                 {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.Role, user.Role)
                 };
@@ -82,7 +90,7 @@ namespace TicketSistemi.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(string username, string password, string confirmPassword)
+        public async Task<IActionResult> Register(string username, string password, string confirmPassword)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
@@ -98,8 +106,7 @@ namespace TicketSistemi.Controllers
                 return View();
             }
 
-            var users = JsonDbManager.GetUsers();
-            if (users.Any(u => string.Equals(u.Username, username.Trim(), StringComparison.OrdinalIgnoreCase)))
+            if (await _context.Users.AnyAsync(u => u.Username.ToLower() == username.ToLower()))
             {
                 _logger.LogWarning("Kayıt başarısız: {Username} kullanıcısı zaten var.", username);
                 ViewBag.ErrorMessage = "Bu kullanıcı adı zaten alınmış!";
@@ -108,14 +115,13 @@ namespace TicketSistemi.Controllers
 
             var newUser = new User
             {
-                Id = users.Any() ? users.Max(u => u.Id) + 1 : 1,
                 Username = username.Trim(),
                 PasswordHash = PasswordHelper.HashPassword(username.Trim(), password),
                 Role = "User" 
             };
 
-            users.Add(newUser);
-            JsonDbManager.SaveUsers(users);
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Yeni kullanıcı eklendi: {Username}", newUser.Username);
 

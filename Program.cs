@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using TicketSistemi.Hubs;
+using TicketSistemi.Data;
+using Microsoft.EntityFrameworkCore;
 using TicketSistemi.Utils;
 using TicketSistemi.Jobs;
 
@@ -12,6 +14,9 @@ builder.Logging.AddDebug();
 builder.Logging.AddFile(Path.Combine(builder.Environment.ContentRootPath, "Logs", "app.log"));
 
 // Add services to the container.
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=ticket.db"));
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<AutoCloseTicketsJob>();
