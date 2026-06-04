@@ -16,6 +16,7 @@ builder.Logging.AddFile(Path.Combine(builder.Environment.ContentRootPath, "Logs"
 // Get connection string from various possible sources to ensure compatibility on Render
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("ConnectionStrings_DefaultConnection")
                        ?? Environment.GetEnvironmentVariable("DATABASE_URL")
                        ?? Environment.GetEnvironmentVariable("DefaultConnection");
 
