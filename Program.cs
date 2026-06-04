@@ -13,11 +13,15 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddFile(Path.Combine(builder.Environment.ContentRootPath, "Logs", "app.log"));
 
+// Get connection string from various possible sources to ensure compatibility on Render
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+                       ?? Environment.GetEnvironmentVariable("DefaultConnection");
+
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    
     // Automatically detect if we are using PostgreSQL based on connection string prefix (works even in Development mode on Render)
     if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
     {
@@ -47,7 +51,6 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     
     if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
     {
