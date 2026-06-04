@@ -15,7 +15,17 @@ builder.Logging.AddFile(Path.Combine(builder.Environment.ContentRootPath, "Logs"
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=ticket.db"));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (builder.Environment.IsDevelopment())
+    {
+        options.UseSqlite(connectionString ?? "Data Source=ticket.db");
+    }
+    else
+    {
+        options.UseNpgsql(connectionString);
+    }
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
@@ -30,11 +40,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// Automatically apply migrations and seed admin user on startup
+// Automatically apply migrations/ensure database created and seed admin user on startup
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.Migrate();
+    
+    if (app.Environment.IsDevelopment())
+    {
+        // Use standard migration for SQLite in development
+        dbContext.Database.Migrate();
+    }
+    else
+    {
+        // Use EnsureCreated for PostgreSQL in production (database-agnostic, doesn't require provider-specific migrations)
+        dbContext.Database.EnsureCreated();
+    }
 
     if (!await dbContext.Users.AnyAsync())
     {
