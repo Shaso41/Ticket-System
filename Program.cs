@@ -30,6 +30,25 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
+// Automatically apply migrations and seed admin user on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+
+    if (!await dbContext.Users.AnyAsync())
+    {
+        dbContext.Users.Add(new TicketSistemi.Models.User
+        {
+            Username = "admin",
+            PasswordHash = PasswordHelper.HashPassword("admin", "123"),
+            Role = "Admin",
+            CreatedDate = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
