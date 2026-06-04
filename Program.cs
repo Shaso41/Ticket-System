@@ -17,13 +17,16 @@ builder.Logging.AddFile(Path.Combine(builder.Environment.ContentRootPath, "Logs"
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (builder.Environment.IsDevelopment())
+    
+    // Automatically detect if we are using PostgreSQL based on connection string prefix (works even in Development mode on Render)
+    if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
     {
-        options.UseSqlite(connectionString ?? "Data Source=ticket.db");
+        var npgsqlConnectionString = ConvertPostgresUrlToConnectionString(connectionString);
+        options.UseNpgsql(npgsqlConnectionString);
     }
     else
     {
-        options.UseNpgsql(connectionString);
+        options.UseSqlite(connectionString ?? "Data Source=ticket.db");
     }
 });
 
@@ -44,16 +47,17 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     
-    if (app.Environment.IsDevelopment())
+    if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
     {
-        // Use standard migration for SQLite in development
-        dbContext.Database.Migrate();
+        // Use EnsureCreated for PostgreSQL (database-agnostic, doesn't require provider-specific migrations)
+        dbContext.Database.EnsureCreated();
     }
     else
     {
-        // Use EnsureCreated for PostgreSQL in production (database-agnostic, doesn't require provider-specific migrations)
-        dbContext.Database.EnsureCreated();
+        // Use standard migration for SQLite in development
+        dbContext.Database.Migrate();
     }
 
     if (!await dbContext.Users.AnyAsync())
@@ -92,3 +96,22 @@ app.MapControllerRoute(
     pattern: "{controller=Ticket}/{action=Index}/{id?}");
 
 app.Run();
+
+// Helper function to convert Render/Neon PostgreSQL URL to Npgsql compatible connection string
+static string ConvertPostgresUrlToConnectionString(string url)
+{
+    if (string.IsNullOrEmpty(url) || (!url.StartsWith("postgres://") && !url.StartsWith("postgresql://")))
+    {
+        return url;
+    }
+
+    var uri = new Uri(url);
+    var userInfo = uri.UserInfo.Split(':');
+    var username = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    var host = uri.Host;
+    var port = uri.Port;
+    var database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
+
+    return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+}
