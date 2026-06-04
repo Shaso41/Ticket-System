@@ -223,7 +223,7 @@
                         </div>
                         <h3 class="fw-bold mb-1 mt-2">@Model.Title</h3>
                         <p class="text-secondary mb-0 small">
-                            <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | <i class="bi bi-calendar3"></i> Tarih: @Model.CreatedDate.ToString("dd MMMM yyyy HH:mm")
+                            <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | <i class="bi bi-calendar3"></i> Tarih: @Model.CreatedDate.ToTurkeyTime().ToString("dd MMMM yyyy HH:mm")
                         </p>
                     </div>
                     
@@ -288,7 +288,7 @@
                             }
 
                             <div class="bubble-meta justify-content-end">
-                                <span>@Model.CreatedDate.ToString("dd MMM HH:mm")</span>
+                                <span>@Model.CreatedDate.ToTurkeyTime().ToString("dd MMM HH:mm")</span>
                             </div>
                         </div>
 
@@ -300,7 +300,7 @@
                                 {
                                     <div class="text-center my-3 w-100 align-self-center">
                                         <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 rounded-pill fw-normal" style="font-size: 0.85rem; letter-spacing: 0.2px; max-width: 90%; white-space: normal; display: inline-block; text-align: left;">
-                                            @Html.Raw(msg.Message) <span class="text-muted ms-1 small">@msg.SentDate.ToString("dd MMM HH:mm")</span>
+                                            @Html.Raw(msg.Message) <span class="text-muted ms-1 small">@msg.SentDate.ToTurkeyTime().ToString("dd MMM HH:mm")</span>
                                         </span>
                                     </div>
                                 }
@@ -348,7 +348,7 @@
                                         }
 
                                         <div class="bubble-meta justify-content-end">
-                                            <span>@msg.SentDate.ToString("dd MMM HH:mm")</span>
+                                            <span>@msg.SentDate.ToTurkeyTime().ToString("dd MMM HH:mm")</span>
                                         </div>
                                     </div>
                                 }
@@ -452,7 +452,7 @@
                     <ul class="timeline">
                         <li class="timeline-item completed">
                             <div class="timeline-title">Talep Oluşturuldu</div>
-                            <div class="timeline-date"><i class="bi bi-calendar3"></i> @Model.CreatedDate.ToString("dd MMM yyyy HH:mm")</div>
+                            <div class="timeline-date"><i class="bi bi-calendar3"></i> @Model.CreatedDate.ToTurkeyTime().ToString("dd MMM yyyy HH:mm")</div>
                             <div class="timeline-desc">Sorun kaydı @Model.CustomerName tarafından sisteme iletildi.</div>
                         </li>
 

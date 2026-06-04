@@ -244,7 +244,7 @@
                                 {
                                     <td class="customer-cell fw-semibold text-secondary">@item.CustomerName</td>
                                 }
-                                <td class="text-muted">@item.CreatedDate.ToString("dd MMM yyyy HH:mm")</td>
+                                <td class="text-muted">@item.CreatedDate.ToTurkeyTime().ToString("dd MMM yyyy HH:mm")</td>
                                 <td>
                                     @if (!string.IsNullOrEmpty(item.AssignedAgent))
                                     {
