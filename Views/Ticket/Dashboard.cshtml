@@ -25,7 +25,7 @@
             <div class="card card-custom h-100 p-3 border-start border-amber border-4" style="border-left: 4px solid #f59e0b !important;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="text-secondary fw-semibold small">Açık Talepler</span>
-                    <span class="fs-4">🔥</span>
+                    <span class="fs-4 text-warning"><i class="bi bi-fire"></i></span>
                 </div>
                 <h2 class="fw-bold mb-1 text-warning">@ViewBag.OpenCount</h2>
                 <span class="text-muted small">İşlem bekleyen aktif biletler</span>
@@ -59,7 +59,7 @@
         <div class="col-lg-6">
             <div class="card card-custom p-4 h-100">
                 <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                    <span>📂</span> Kategori Dağılımı
+                    <span><i class="bi bi-folder-fill"></i></span> Kategori Dağılımı
                 </h5>
                 <div class="chart-container" style="position: relative; height: 300px; display: flex; justify-content: center; align-items: center;">
                     <canvas id="categoryChart"></canvas>
@@ -70,7 +70,7 @@
         <div class="col-lg-6">
             <div class="card card-custom p-4 h-100">
                 <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                    <span>⚡</span> Öncelik Seviyeleri
+                    <span><i class="bi bi-lightning-charge-fill"></i></span> Öncelik Seviyeleri
                 </h5>
                 <div class="chart-container" style="position: relative; height: 300px; display: flex; justify-content: center; align-items: center;">
                     <canvas id="priorityChart"></canvas>
@@ -83,7 +83,7 @@
         <div class="col-12">
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                    <span>📈</span> Son 7 Günlük Bilet Trendi
+                    <span><i class="bi bi-graph-up"></i></span> Son 7 Günlük Bilet Trendi
                 </h5>
                 <div class="chart-container" style="position: relative; height: 350px;">
                     <canvas id="trendChart"></canvas>

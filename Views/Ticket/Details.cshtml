@@ -172,7 +172,7 @@
 <div class="container py-3">
     <div class="mb-4">
         <a asp-action="Index" class="btn btn-outline-secondary btn-custom rounded-pill d-inline-flex align-items-center gap-2">
-            ⬅️ Panele Geri Dön
+            <i class="bi bi-arrow-left"></i> Panele Geri Dön
         </a>
     </div>
 
@@ -223,7 +223,7 @@
                         </div>
                         <h3 class="fw-bold mb-1 mt-2">@Model.Title</h3>
                         <p class="text-secondary mb-0 small">
-                            <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | 📅 Tarih: @Model.CreatedDate.ToString("dd MMMM yyyy HH:mm")
+                            <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | <i class="bi bi-calendar3"></i> Tarih: @Model.CreatedDate.ToString("dd MMMM yyyy HH:mm")
                         </p>
                     </div>
                     
@@ -244,6 +244,51 @@
 
                 <div class="card-body p-4">
                     <div class="chat-body" id="chatBody" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">
+                        <!-- İlk Açılış Mesajı (Talep Detayı) -->
+                        <div class="bubble bubble-left mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-light border-opacity-10">
+                                <div class="avatar avatar-user">
+                                    @((Model.CustomerName ?? "M").Substring(0, Math.Min(2, (Model.CustomerName ?? "M").Length)).ToUpper())
+                                </div>
+                                <span class="fw-bold small">
+                                    @Model.CustomerName (Konu Sahibi)
+                                </span>
+                            </div>
+                            <div style="word-break: break-word; line-height: 1.6;">@Html.Raw(Model.Description)</div>
+                            
+                            @if (!string.IsNullOrEmpty(Model.AttachmentPath))
+                            {
+                                <div class="mt-3 p-2 rounded border bg-light bg-opacity-10 d-flex flex-column gap-2" style="max-width: 320px;">
+                                    @{
+                                        var ext = System.IO.Path.GetExtension(Model.AttachmentPath).ToLowerInvariant();
+                                        var isImage = ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp";
+                                    }
+                                    @if (isImage)
+                                    {
+                                        <a href="@Model.AttachmentPath" target="_blank" title="Görseli yeni sekmede aç">
+                                            <img src="@Model.AttachmentPath" alt="@Model.AttachmentFileName" class="img-fluid rounded border shadow-sm" style="max-height: 200px; object-fit: contain;" />
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fs-4"><i class="bi bi-file-earmark-text"></i></span>
+                                            <div class="overflow-hidden" style="max-width: 250px;">
+                                                <span class="d-block text-truncate fw-semibold small">@Model.AttachmentFileName</span>
+                                                <a href="@Model.AttachmentPath" download class="btn btn-sm btn-light border py-1 px-2 mt-1" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-download"></i> Dosyayı İndir
+                                                </a>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            <div class="bubble-meta justify-content-end">
+                                <span>@Model.CreatedDate.ToString("dd MMM HH:mm")</span>
+                            </div>
+                        </div>
+
                         @if (Model.Messages != null && Model.Messages.Any())
                         {
                             @foreach (var msg in Model.Messages)
@@ -252,7 +297,7 @@
                                 {
                                     <div class="text-center my-3 w-100 align-self-center">
                                         <span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2 rounded-pill fw-normal" style="font-size: 0.85rem; letter-spacing: 0.2px; max-width: 90%; white-space: normal; display: inline-block; text-align: left;">
-                                            ⚙️ @Html.Raw(msg.Message) <span class="text-muted ms-1 small">🕒 @msg.SentDate.ToString("dd MMM HH:mm")</span>
+                                            @Html.Raw(msg.Message) <span class="text-muted ms-1 small">@msg.SentDate.ToString("dd MMM HH:mm")</span>
                                         </span>
                                     </div>
                                 }
@@ -274,10 +319,10 @@
                                         {
                                             <div class="mt-3 p-2 rounded border bg-light bg-opacity-10 d-flex flex-column gap-2" style="max-width: 320px;">
                                                 @{
-                                                    var ext = System.IO.Path.GetExtension(msg.AttachmentPath).ToLowerInvariant();
-                                                    var isImage = ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".webp";
+                                                    var msgExt = System.IO.Path.GetExtension(msg.AttachmentPath).ToLowerInvariant();
+                                                    var isMsgImage = msgExt == ".png" || msgExt == ".jpg" || msgExt == ".jpeg" || msgExt == ".gif" || msgExt == ".webp";
                                                 }
-                                                @if (isImage)
+                                                @if (isMsgImage)
                                                 {
                                                     <a href="@msg.AttachmentPath" target="_blank" title="Görseli yeni sekmede aç">
                                                         <img src="@msg.AttachmentPath" alt="@msg.AttachmentFileName" class="img-fluid rounded border shadow-sm" style="max-height: 200px; object-fit: contain;" />
@@ -286,11 +331,11 @@
                                                 else
                                                 {
                                                     <div class="d-flex align-items-center gap-2">
-                                                        <span class="fs-4">📄</span>
+                                                        <span class="fs-4"><i class="bi bi-file-earmark-text"></i></span>
                                                         <div class="overflow-hidden" style="max-width: 250px;">
                                                             <span class="d-block text-truncate fw-semibold small @(isMsgAdmin ? "text-white" : "")">@msg.AttachmentFileName</span>
                                                             <a href="@msg.AttachmentPath" download class="btn btn-sm btn-light border py-1 px-2 mt-1" style="font-size: 0.75rem;">
-                                                                ⬇️ Dosyayı İndir
+                                                                <i class="bi bi-download"></i> Dosyayı İndir
                                                             </a>
                                                         </div>
                                                     </div>
@@ -299,7 +344,7 @@
                                         }
 
                                         <div class="bubble-meta justify-content-end">
-                                            <span>🕒 @msg.SentDate.ToString("dd MMM HH:mm")</span>
+                                            <span>@msg.SentDate.ToString("dd MMM HH:mm")</span>
                                         </div>
                                     </div>
                                 }
@@ -319,9 +364,11 @@
                         <input type="hidden" name="id" value="@Model.Id" />
                         
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-secondary">Mesajınız</label>
-                            <input type="hidden" name="message" id="messageInput" />
-                            <div id="editor-container" style="height: 180px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; background-color: var(--input-bg); color: var(--input-color);"></div>
+                             <label class="form-label fw-bold text-secondary">Mesajınız</label>
+                             <input type="hidden" name="message" id="messageInput" />
+                             <div id="editor-container" style="height: 180px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; background-color: var(--input-bg); color: var(--input-color);">
+                                  <textarea id="fallback-editor" class="form-control form-control-custom h-100 w-100" placeholder="Cevabınızı buraya yazabilirsiniz..." style="display: none; border: none; resize: none; outline: none; box-shadow: none;"></textarea>
+                             </div>
                         </div>
 
                         <div class="mb-3">
@@ -367,7 +414,7 @@
                                 </div>
                                 <div class="col-md-6 col-lg-7 text-md-end pt-md-4">
                                     <button type="submit" class="btn btn-custom btn-custom-primary shadow-sm">
-                                        📩 Yanıtı Gönder ve Güncelle
+                                        <i class="bi bi-send-fill"></i> Yanıtı Gönder ve Güncelle
                                     </button>
                                 </div>
                             }
@@ -382,7 +429,7 @@
                                 </div>
                                 <div class="col-md-6 col-lg-7 text-md-end pt-md-4">
                                     <button type="submit" class="btn btn-custom btn-custom-primary shadow-sm">
-                                        📩 Mesajı Gönder
+                                        <i class="bi bi-send-fill"></i> Mesajı Gönder
                                     </button>
                                 </div>
                             }
@@ -395,13 +442,13 @@
         <div class="col-lg-4">
             <div class="card chat-card mb-4">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
-                    <h5 class="fw-bold mb-0">📌 Talep Geçmişi</h5>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-clock-history"></i> Talep Geçmişi</h5>
                 </div>
                 <div class="card-body p-4">
                     <ul class="timeline">
                         <li class="timeline-item completed">
                             <div class="timeline-title">Talep Oluşturuldu</div>
-                            <div class="timeline-date">📅 @Model.CreatedDate.ToString("dd MMM yyyy HH:mm")</div>
+                            <div class="timeline-date"><i class="bi bi-calendar3"></i> @Model.CreatedDate.ToString("dd MMM yyyy HH:mm")</div>
                             <div class="timeline-desc">Sorun kaydı @Model.CustomerName tarafından sisteme iletildi.</div>
                         </li>
 
@@ -471,6 +518,16 @@
             border-bottom-right-radius: 10px;
             border-color: var(--input-border);
         }
+        .ql-editor {
+            color: var(--input-color);
+            background-color: var(--input-bg);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+        }
+        .ql-editor.ql-blank::before {
+            color: var(--text-muted) !important;
+            font-style: normal;
+        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -480,19 +537,40 @@
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
 
-            // Quill initialization
-            var quill = new Quill('#editor-container', {
-                theme: 'snow',
-                placeholder: 'Cevabınızı buraya yazabilirsiniz...',
-                modules: {
-                    toolbar: [
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        ['code-block', 'blockquote'],
-                        ['clean']
-                    ]
+            // Quill initialization with robustness / fallback
+            let useQuill = false;
+            let quill;
+            if (typeof Quill !== 'undefined') {
+                try {
+                    quill = new Quill('#editor-container', {
+                        theme: 'snow',
+                        placeholder: 'Cevabınızı buraya yazabilirsiniz...',
+                        modules: {
+                            toolbar: [
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                ['code-block', 'blockquote'],
+                                ['clean']
+                            ]
+                        }
+                    });
+                    useQuill = true;
+                } catch (e) {
+                    console.error("Quill initialization failed, falling back to textarea:", e);
                 }
-            });
+            }
+
+            if (!useQuill) {
+                const fallback = document.getElementById('fallback-editor');
+                if (fallback) {
+                    fallback.style.display = 'block';
+                    const container = document.getElementById('editor-container');
+                    if (container) {
+                        container.style.border = '1px solid var(--input-border)';
+                        container.style.borderRadius = '10px';
+                    }
+                }
+            }
 
             const statusSelect = document.getElementById("status");
             const categorySelect = document.getElementById("category");
@@ -505,7 +583,19 @@
             var form = document.querySelector('#replyForm form');
             form.onsubmit = function () {
                 var messageInput = document.querySelector('#messageInput');
-                var htmlContent = quill.root.innerHTML;
+                var textContent = "";
+                var htmlContent = "";
+
+                if (useQuill && quill) {
+                    htmlContent = quill.root.innerHTML;
+                    textContent = quill.getText().trim();
+                } else {
+                    const fallback = document.getElementById('fallback-editor');
+                    if (fallback) {
+                        htmlContent = fallback.value.replace(/\n/g, '<br>');
+                        textContent = fallback.value.trim();
+                    }
+                }
                 
                 var fileInput = document.querySelector('#attachment');
                 var hasAttachment = fileInput && fileInput.files && fileInput.files.length > 0;
@@ -518,7 +608,7 @@
                                           (currentCategory !== initialCategory) || 
                                           (currentPriority !== initialPriority);
 
-                if (quill.getText().trim().length === 0 && !hasAttachment) {
+                if (textContent.length === 0 && !hasAttachment) {
                     messageInput.value = '';
                     if (!isMetadataChanged) {
                         alert('Lütfen bir mesaj yazın, bir dosya ekleyin ya da bilet bilgilerini güncelleyin.');

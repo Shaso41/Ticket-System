@@ -98,7 +98,7 @@
                 <div class="card login-card">
                     <div class="login-header">
                         <div class="login-icon-wrapper">
-                            🔐
+                            <i class="bi bi-shield-lock-fill"></i>
                         </div>
                         <h4 class="fw-bold mb-1">Destek Portalı</h4>
                         <p class="text-white-50 small mb-0">Erişim sağlamak için bilgilerinizi girin</p>
@@ -115,7 +115,7 @@
                         @if (ViewBag.ErrorMessage != null)
                         {
                             <div class="alert alert-danger border-0 small shadow-sm mb-4" style="border-radius: 10px;">
-                                <i class="me-2">🚫</i> @ViewBag.ErrorMessage
+                                <i class="bi bi-x-circle-fill me-2"></i> @ViewBag.ErrorMessage
                             </div>
                         }
 
@@ -131,7 +131,7 @@
                             </div>
 
                             <button type="submit" class="btn btn-login w-100 shadow-sm d-flex align-items-center justify-content-center gap-2 mb-3">
-                                Giriş Yap <span>→</span>
+                                Giriş Yap <i class="bi bi-arrow-right"></i>
                             </button>
                         </form>
 
