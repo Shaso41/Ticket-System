@@ -207,18 +207,18 @@
                             {
                                 <span class="badge rounded-pill badge-kapandi px-3 py-1.5">Kapandı</span>
                             }
-                            <span class="badge bg-info text-dark rounded-pill px-3 py-1.5">📂 @TicketSistemi.Models.EnumHelper.GetCategoryName(Model.Category)</span>
+                            <span class="badge bg-info text-dark rounded-pill px-3 py-1.5">@TicketSistemi.Models.EnumHelper.GetCategoryName(Model.Category)</span>
                             @if (Model.Priority == TicketSistemi.Models.TicketPriority.Yuksek)
                             {
-                                <span class="badge bg-danger rounded-pill px-3 py-1.5">🔥 Yüksek Öncelik</span>
+                                <span class="badge bg-danger rounded-pill px-3 py-1.5">Yüksek Öncelik</span>
                             }
                             else if (Model.Priority == TicketSistemi.Models.TicketPriority.Orta)
                             {
-                                <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5">⚡ Orta Öncelik</span>
+                                <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5">Orta Öncelik</span>
                             }
                             else
                             {
-                                <span class="badge bg-secondary rounded-pill px-3 py-1.5">❄️ Düşük Öncelik</span>
+                                <span class="badge bg-secondary rounded-pill px-3 py-1.5">Düşük Öncelik</span>
                             }
                         </div>
                         <h3 class="fw-bold mb-1 mt-2">@Model.Title</h3>
