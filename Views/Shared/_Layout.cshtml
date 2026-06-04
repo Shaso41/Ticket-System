@@ -246,7 +246,7 @@
     </footer>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
-        <div id="liveToast" class="toast align-items-center text-white bg-gradient-indigo border-0" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 12px; display: none; opacity: 0; transition: opacity 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+        <div id="liveToast" class="toast align-items-center text-white bg-gradient-indigo border-0 fade" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
             <div class="d-flex">
                 <div class="toast-body p-3">
                     <div class="d-flex align-items-center gap-2">
@@ -257,7 +257,7 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" aria-label="Kapat" onclick="window.hideToast()"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Kapat"></button>
             </div>
         </div>
     </div>
@@ -286,18 +286,12 @@
                 updateToggleIcon(target);
             });
 
-            // SignalR Toast Notifications
+            // SignalR Toast Notifications using official Bootstrap 5 Toast API
             const toastEl = document.getElementById('liveToast');
             const messageEl = document.getElementById('toastMessage');
-            let toastTimeout;
-
-            window.hideToast = function() {
-                if (toastEl) {
-                    toastEl.style.opacity = "0";
-                    setTimeout(() => {
-                        toastEl.style.display = "none";
-                    }, 300);
-                }
+            let bsToast;
+            if (toastEl) {
+                bsToast = new bootstrap.Toast(toastEl, { delay: 5000 });
             }
 
             window.showToast = function(message, targetRole) {
@@ -314,24 +308,20 @@
                     return;
                 }
 
-                if (!toastEl || !messageEl) return;
+                if (!toastEl || !messageEl || !bsToast) return;
                 
                 messageEl.textContent = message;
                 
                 // Switch colors based on target
                 if (targetRole === "Admin") {
-                    toastEl.className = "toast align-items-center text-white bg-gradient-amber border-0";
+                    toastEl.classList.remove("bg-gradient-indigo");
+                    toastEl.classList.add("bg-gradient-amber");
                 } else {
-                    toastEl.className = "toast align-items-center text-white bg-gradient-indigo border-0";
+                    toastEl.classList.remove("bg-gradient-amber");
+                    toastEl.classList.add("bg-gradient-indigo");
                 }
                 
-                toastEl.style.display = "block";
-                setTimeout(() => {
-                    toastEl.style.opacity = "1";
-                }, 50);
-
-                if (toastTimeout) clearTimeout(toastTimeout);
-                toastTimeout = setTimeout(window.hideToast, 5000);
+                bsToast.show();
             }
 
             // Connect to SignalR Hub
