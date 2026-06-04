@@ -54,21 +54,6 @@
     "Messages": []
   },
   {
-    "Id": 4,
-    "Title": "boktan proje",
-    "Description": "bu proje bok gibi olmu\u015F",
-    "CustomerName": "ceg",
-    "CreatedDate": "2026-05-18T22:28:55.865037+03:00",
-    "Status": 1,
-    "SupportReply": null,
-    "AssignedAgent": null,
-    "Category": 4,
-    "Priority": 2,
-    "AttachmentPath": null,
-    "AttachmentFileName": null,
-    "Messages": []
-  },
-  {
     "Id": 5,
     "Title": "proje eleman\u0131",
     "Description": "bunlar\u0131n yapaca\u011F\u0131 proje anca bu kadar olur ",
@@ -100,7 +85,7 @@
     "CreatedDate": "2026-05-19T18:01:38.060558+03:00",
     "Status": 1,
     "SupportReply": null,
-    "AssignedAgent": null,
+    "AssignedAgent": "admin",
     "Category": 4,
     "Priority": 2,
     "AttachmentPath": null,
@@ -167,14 +152,47 @@
     "Description": "Adal art\u0131k memnun ol",
     "CustomerName": "batu",
     "CreatedDate": "2026-05-21T20:22:03.1924736+03:00",
-    "Status": 1,
-    "SupportReply": null,
-    "AssignedAgent": null,
+    "Status": 3,
+    "SupportReply": "\u003Cp\u003Ememnuniyet g\u00F6recelidir\u003C/p\u003E",
+    "AssignedAgent": "admin",
     "Category": 4,
     "Priority": 2,
     "AttachmentPath": null,
     "AttachmentFileName": null,
-    "Messages": []
+    "Messages": [
+      {
+        "Sender": "batu",
+        "Role": "User",
+        "Message": "Adal art\u0131k memnun ol",
+        "SentDate": "2026-05-21T20:22:03.1924736+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      },
+      {
+        "Sender": "admin",
+        "Role": "Admin",
+        "Message": "\u003Cp\u003E\u0131yg\u0131ygygy jlhouhohu khb\u0131yguyftf kjbughu\u0131g\u0131u\u0131lghug\u0131ug   kjbuhuohohouhouh\u003C/p\u003E",
+        "SentDate": "2026-06-04T13:44:09.265994+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      },
+      {
+        "Sender": "Sistem",
+        "Role": "Admin",
+        "Message": "Bilet durumu \u0027A\u00E7\u0131k\u0027 de\u011Ferinden \u0027Kapal\u0131\u0027 de\u011Ferine g\u00FCncellendi.",
+        "SentDate": "2026-06-04T13:44:09.266591+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      },
+      {
+        "Sender": "admin",
+        "Role": "Admin",
+        "Message": "\u003Cp\u003Ememnuniyet g\u00F6recelidir\u003C/p\u003E",
+        "SentDate": "2026-06-04T13:44:36.496224+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      }
+    ]
   },
   {
     "Id": 11,
@@ -182,7 +200,7 @@
     "Description": "\u003Cp\u003EAlb\u00FCm nerede kald\u0131\u003C/p\u003E",
     "CustomerName": "batu",
     "CreatedDate": "2026-05-22T09:41:07.7987545+03:00",
-    "Status": 2,
+    "Status": 3,
     "SupportReply": "\u003Cp\u003Esana alb\u00FCm yok anca fingersnap\u003C/p\u003E",
     "AssignedAgent": "admin",
     "Category": 1,
@@ -227,6 +245,46 @@
         "Role": "Admin",
         "Message": "Bilet durumu \u0027A\u00E7\u0131k\u0027 de\u011Ferinden \u0027\u00C7\u00F6z\u00FCld\u00FC\u0027 de\u011Ferine g\u00FCncellendi.",
         "SentDate": "2026-05-29T03:38:05.0241909+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      },
+      {
+        "Sender": "Sistem",
+        "Role": "Admin",
+        "Message": "\u00C7\u00F6z\u00FCld\u00FC olarak i\u015Faretlenen bu bilet, 3 g\u00FCn boyunca i\u015Flem yap\u0131lmad\u0131\u011F\u0131 i\u00E7in sistem taraf\u0131ndan otomatik olarak kapat\u0131lm\u0131\u015Ft\u0131r.",
+        "SentDate": "2026-06-04T13:33:10.53125+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      }
+    ]
+  },
+  {
+    "Id": 12,
+    "Title": "sunucu ba\u011Flant\u0131 hatas\u0131",
+    "Description": "\u003Cp\u003Esunucuya giremiyorum. hatal\u0131 giri\u015F uyar\u0131s\u0131 al\u0131yorum\u003C/p\u003E",
+    "CustomerName": "user",
+    "CreatedDate": "2026-06-04T13:39:14.276665+03:00",
+    "Status": 1,
+    "SupportReply": null,
+    "AssignedAgent": null,
+    "Category": 1,
+    "Priority": 1,
+    "AttachmentPath": null,
+    "AttachmentFileName": null,
+    "Messages": [
+      {
+        "Sender": "user",
+        "Role": "User",
+        "Message": "\u003Cp\u003Esunucuya giremiyorum. hatal\u0131 giri\u015F uyar\u0131s\u0131 al\u0131yorum\u003C/p\u003E",
+        "SentDate": "2026-06-04T13:39:14.276665+03:00",
+        "AttachmentPath": null,
+        "AttachmentFileName": null
+      },
+      {
+        "Sender": "user",
+        "Role": "User",
+        "Message": "\u003Cp\u003Esorunum tahmini ne zaman d\u00FCzelir\u003C/p\u003E",
+        "SentDate": "2026-06-04T13:39:58.423946+03:00",
         "AttachmentPath": null,
         "AttachmentFileName": null
       }

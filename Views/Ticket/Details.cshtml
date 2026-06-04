@@ -170,7 +170,6 @@
 </style>
 
 <div class="container py-3">
-    <!-- Back to Index Button -->
     <div class="mb-4">
         <a asp-action="Index" class="btn btn-outline-secondary btn-custom rounded-pill d-inline-flex align-items-center gap-2">
             ⬅️ Panele Geri Dön
@@ -183,16 +182,14 @@
             <div class="col-12">
                 <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm border-0 mb-4" role="alert">
                     <div class="d-flex align-items-center">
-                        <span class="fs-4 me-2">⚠️</span>
+                        <span class="fs-4 me-2"><i class="bi bi-exclamation-triangle-fill"></i></span>
                         <div><strong>Hata!</strong> @TempData["ErrorMessage"]</div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </div>
         }
-        <!-- Left Column: Chat Conversation -->
         <div class="col-lg-8">
-            <!-- Ticket Detail Header Info Card -->
             <div class="card chat-card mb-4">
                 <div class="chat-header p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                     <div>
@@ -226,7 +223,7 @@
                         </div>
                         <h3 class="fw-bold mb-1 mt-2">@Model.Title</h3>
                         <p class="text-secondary mb-0 small">
-                            👤 Müşteri: <strong>@Model.CustomerName</strong> | 📅 Tarih: @Model.CreatedDate.ToString("dd MMMM yyyy HH:mm")
+                            <i class="bi bi-person-circle"></i> Müşteri: <strong>@Model.CustomerName</strong> | 📅 Tarih: @Model.CreatedDate.ToString("dd MMMM yyyy HH:mm")
                         </p>
                     </div>
                     
@@ -235,7 +232,7 @@
                         @if (!string.IsNullOrEmpty(Model.AssignedAgent))
                         {
                             <span class="badge fw-semibold px-3 py-2 border rounded-pill" style="color: #4338ca; background-color: #e0e7ff; border: 1px solid #c7d2fe; font-size: 0.9rem;">
-                                👤 @Model.AssignedAgent
+                                <i class="bi bi-person-circle"></i> @Model.AssignedAgent
                             </span>
                         }
                         else
@@ -245,7 +242,6 @@
                     </div>
                 </div>
 
-                <!-- Chat Conversation Body -->
                 <div class="card-body p-4">
                     <div class="chat-body" id="chatBody" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">
                         @if (Model.Messages != null && Model.Messages.Any())
@@ -313,7 +309,6 @@
                 </div>
             </div>
 
-            <!-- Reply Form -->
             <div class="card chat-card" id="replyForm">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
                     <h5 class="fw-bold mb-0">@(User.IsInRole("Admin") ? "Destek Talebini Yanıtla" : "Destek Ekibine Yazın")</h5>
@@ -323,17 +318,15 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         
-                        <!-- Quill Rich Text Editor -->
                         <div class="mb-3">
                             <label class="form-label fw-bold text-secondary">Mesajınız</label>
                             <input type="hidden" name="message" id="messageInput" />
                             <div id="editor-container" style="height: 180px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; background-color: var(--input-bg); color: var(--input-color);"></div>
                         </div>
 
-                        <!-- Attachment Input -->
                         <div class="mb-3">
                             <label for="attachment" class="form-label fw-bold text-secondary">Dosya Eki (Opsiyonel)</label>
-                            <input type="file" name="attachment" id="attachment" class="form-control form-control-custom" />
+                            <input type="file" name="attachment" id="attachment" class="form-control form-control-custom" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.txt,.zip,.rar,.docx,.xlsx" />
                             <div class="form-text small text-muted">Desteklenen formatlar: Resim (PNG, JPG, GIF), PDF, TXT, ZIP vb. (Maks 10MB)</div>
                         </div>
 
@@ -399,7 +392,6 @@
             </div>
         </div>
 
-        <!-- Right Column: Timeline & Meta Info -->
         <div class="col-lg-4">
             <div class="card chat-card mb-4">
                 <div class="card-header bg-transparent border-0 pt-4 px-4">
@@ -407,14 +399,12 @@
                 </div>
                 <div class="card-body p-4">
                     <ul class="timeline">
-                        <!-- Step 1: Talep Oluşturuldu -->
                         <li class="timeline-item completed">
                             <div class="timeline-title">Talep Oluşturuldu</div>
                             <div class="timeline-date">📅 @Model.CreatedDate.ToString("dd MMM yyyy HH:mm")</div>
                             <div class="timeline-desc">Sorun kaydı @Model.CustomerName tarafından sisteme iletildi.</div>
                         </li>
 
-                        <!-- Step 2: Temsilci Atandı -->
                         @if (!string.IsNullOrEmpty(Model.AssignedAgent))
                         {
                             <li class="timeline-item completed">
@@ -430,7 +420,6 @@
                             </li>
                         }
 
-                        <!-- Step 3: Destek Yanıtı -->
                         @if (Model.Messages != null && Model.Messages.Any(m => string.Equals(m.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
                         {
                             <li class="timeline-item completed">
@@ -446,18 +435,17 @@
                             </li>
                         }
 
-                        <!-- Step 4: Son Durum -->
                         @if (Model.Status == TicketSistemi.Models.TicketStatus.Cozuldu)
                         {
                             <li class="timeline-item completed">
-                                <div class="timeline-title text-success">✅ Çözüldü</div>
+                                <div class="timeline-title text-success"><i class="bi bi-check-circle-fill"></i> Çözüldü</div>
                                 <div class="timeline-desc">Bu destek talebi başarıyla çözüldü olarak işaretlendi.</div>
                             </li>
                         }
                         else if (Model.Status == TicketSistemi.Models.TicketStatus.Kapandi)
                         {
                             <li class="timeline-item completed">
-                                <div class="timeline-title text-secondary">🔒 Kapandı</div>
+                                <div class="timeline-title text-secondary"><i class="bi bi-lock-fill"></i> Kapandı</div>
                                 <div class="timeline-desc">Talep arşive alındı ve kapatıldı.</div>
                             </li>
                         }

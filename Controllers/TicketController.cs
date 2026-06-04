@@ -66,7 +66,6 @@ namespace TicketSistemi.Controllers
             return ("/uploads/" + uniqueFileName, file.FileName);
         }
 
-        // 1. Tüm Ticket'ları Listeleme Ekranı
         public IActionResult Index(TicketStatus? status)
         {
             var username = User.Identity?.Name;
@@ -78,35 +77,29 @@ namespace TicketSistemi.Controllers
             var isAdmin = User.IsInRole("Admin");
             var tickets = JsonDbManager.GetTickets();
 
-            // Eğer normal kullanıcı ise sadece kendi biletlerini süzüyoruz
             if (!isAdmin)
             {
                 tickets = tickets.Where(t => string.Equals(t.CustomerName, username, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            // Sayımları filtrelemeden bağımsız olarak, yetki sınırları dahilinde hesaplayıp ViewBag'e atıyoruz
             ViewBag.TotalCount = tickets.Count;
             ViewBag.OpenCount = tickets.Count(t => t.Status == TicketStatus.Acik);
             ViewBag.SolvedCount = tickets.Count(t => t.Status == TicketStatus.Cozuldu);
             ViewBag.ClosedCount = tickets.Count(t => t.Status == TicketStatus.Kapandi);
 
-            // Tarihe göre ters sıralıyoruz.
             var sortedTickets = tickets.OrderByDescending(t => t.CreatedDate).ToList();
-            
-            // Seçili filtreyi View'a taşıyoruz
+
             ViewBag.CurrentStatus = status;
             
             return View(sortedTickets);
         }
 
-        // 2. Yeni Ticket Oluşturma Ekranı (GET)
         [HttpGet]
         public IActionResult Create()
         {
             return View();
         }
 
-        // 3. Form Doldurulup Gönderildiğinde Çalışacak Kısım (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Ticket newTicket, IFormFile? attachment)
@@ -117,7 +110,6 @@ namespace TicketSistemi.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Müşteri adını oturum çerezinden otomatik atıyoruz (Güvenlik için)
             newTicket.CustomerName = username;
             ModelState.Remove("CustomerName");
 
@@ -148,9 +140,8 @@ namespace TicketSistemi.Controllers
                 tickets.Add(newTicket);
                 JsonDbManager.SaveTickets(tickets);
 
-                _logger.LogInformation("Yeni destek talebi oluşturuldu. ID: {Id}, Başlık: {Title}, Müşteri: {CustomerName}, Ek: {AttachmentName}", newTicket.Id, newTicket.Title, username, attachmentFileName);
+                _logger.LogInformation("Yeni ticket eklendi (ID: {Id}, Başlık: {Title}) Müşteri: {CustomerName}", newTicket.Id, newTicket.Title, username);
 
-                // SignalR Live Notification
                 await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Yeni bir destek talebi oluşturuldu! Konu: {newTicket.Title}", "Admin");
                 
                 return RedirectToAction("Index");
@@ -159,7 +150,6 @@ namespace TicketSistemi.Controllers
             return View(newTicket);
         }
 
-        // 4. Admin Cevaplama Ekranı (GET) - Detay sayfasına yönlendirildi
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public IActionResult Reply(int id)
@@ -167,7 +157,6 @@ namespace TicketSistemi.Controllers
             return RedirectToAction("Details", new { id = id });
         }
 
-        // 6. Talebi Üstlenme (POST)
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -182,12 +171,11 @@ namespace TicketSistemi.Controllers
             tickets[ticketIndex].AssignedAgent = agentName;
             JsonDbManager.SaveTickets(tickets);
 
-            _logger.LogInformation("Destek talebi üstlenildi. ID: {Id}, Üstlenen Admin: {AdminName}", id, agentName);
+            _logger.LogInformation("Ticket {Id} admin {AdminName} tarafından üstlenildi.", id, agentName);
             
             return RedirectToAction("Index");
         }
 
-        // 7. Talebi Silme (POST)
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -198,7 +186,6 @@ namespace TicketSistemi.Controllers
             
             if (ticket == null) return NotFound();
 
-            // 1. Delete main ticket attachment from disk
             if (!string.IsNullOrEmpty(ticket.AttachmentPath))
             {
                 var fullPath = Path.Combine(_env.WebRootPath, ticket.AttachmentPath.TrimStart('/'));
@@ -208,7 +195,6 @@ namespace TicketSistemi.Controllers
                 }
             }
 
-            // 2. Delete all message attachments from disk
             if (ticket.Messages != null)
             {
                 foreach (var msg in ticket.Messages)
@@ -227,12 +213,11 @@ namespace TicketSistemi.Controllers
             tickets.Remove(ticket);
             JsonDbManager.SaveTickets(tickets);
 
-            _logger.LogInformation("Destek talebi silindi. ID: {Id}, Başlık: {Title}, Sileyen Admin: {AdminName}", id, ticket.Title, User.Identity?.Name);
+            _logger.LogInformation("Ticket {Id} ({Title}) silindi. Sileyen: {AdminName}", id, ticket.Title, User.Identity?.Name);
             
             return RedirectToAction("Index");
         }
 
-        // 8. Bilet Detayları (GET)
         [HttpGet]
         public IActionResult Details(int id)
         {
@@ -247,14 +232,12 @@ namespace TicketSistemi.Controllers
 
             if (ticket == null) return NotFound();
 
-            // Güvenlik kontrolü: Normal kullanıcı sadece kendi biletini görebilir
             var isAdmin = User.IsInRole("Admin");
             if (!isAdmin && !string.Equals(ticket.CustomerName, username, StringComparison.OrdinalIgnoreCase))
             {
                 return Forbid();
             }
 
-            // Geriye dönük uyumluluk için mesaj listesini doldur
             if (ticket.Messages == null)
             {
                 ticket.Messages = new List<TicketMessage>();
@@ -262,7 +245,7 @@ namespace TicketSistemi.Controllers
 
             if (!ticket.Messages.Any())
             {
-                // Müşterinin ilk mesajı (bilet açıklaması)
+                
                 ticket.Messages.Add(new TicketMessage
                 {
                     Sender = ticket.CustomerName,
@@ -273,7 +256,6 @@ namespace TicketSistemi.Controllers
                     AttachmentFileName = ticket.AttachmentFileName
                 });
 
-                // Eğer temsilci cevabı varsa, onu da ekleyelim
                 if (!string.IsNullOrEmpty(ticket.SupportReply))
                 {
                     ticket.Messages.Add(new TicketMessage
@@ -285,7 +267,6 @@ namespace TicketSistemi.Controllers
                     });
                 }
 
-                // Değişikliği veritabanına kaydet
                 JsonDbManager.SaveTickets(tickets);
             }
 
@@ -310,13 +291,11 @@ namespace TicketSistemi.Controllers
             var ticket = tickets[ticketIndex];
             var isAdmin = User.IsInRole("Admin");
 
-            // Güvenlik Kontrolü: Admin olmayan kullanıcılar sadece kendi biletlerine yazabilir
             if (!isAdmin && !string.Equals(ticket.CustomerName, username, StringComparison.OrdinalIgnoreCase))
             {
                 return Forbid();
             }
 
-            // Geriye dönük uyumluluk için mesaj listesini doğrula
             if (ticket.Messages == null)
             {
                 ticket.Messages = new List<TicketMessage>();
@@ -344,7 +323,6 @@ namespace TicketSistemi.Controllers
                 }
             }
 
-            // Kategori ve Öncelik güncellemeleri (Yalnızca Admin)
             var oldCategory = ticket.Category;
             var oldPriority = ticket.Priority;
             if (isAdmin)
@@ -357,7 +335,7 @@ namespace TicketSistemi.Controllers
                 {
                     ticket.Priority = priority.Value;
                 }
-                // Eğer daha önce üstlenilmemişse, otomatik olarak işlem yapan admini ata
+                
                 if (string.IsNullOrEmpty(ticket.AssignedAgent))
                 {
                     ticket.AssignedAgent = username;
@@ -366,7 +344,6 @@ namespace TicketSistemi.Controllers
 
             var oldStatus = ticket.Status;
 
-            // Mesaj içeriği veya attachment varsa yeni mesaj ekle
             if (!string.IsNullOrWhiteSpace(message) || (attachment != null && attachment.Length > 0))
             {
                 string? attachmentPath = null;
@@ -393,11 +370,10 @@ namespace TicketSistemi.Controllers
                 };
                 ticket.Messages.Add(newMessage);
 
-                // Geriye dönük uyumluluk alanlarını da güncelle
                 if (isAdmin)
                 {
                     ticket.SupportReply = newMessage.Message;
-                    // Eğer daha önce üstlenilmemişse, otomatik olarak cevaplayan admini ata
+                    
                     if (string.IsNullOrEmpty(ticket.AssignedAgent))
                     {
                         ticket.AssignedAgent = username;
@@ -405,27 +381,25 @@ namespace TicketSistemi.Controllers
                 }
                 else
                 {
-                    // Müşteri yeni bir mesaj yazdığında, eğer bilet kapalıysa veya çözüldüyse "Açık" durumuna geri getirilebilir
+                    
                     if (ticket.Status == TicketStatus.Cozuldu || ticket.Status == TicketStatus.Kapandi)
                     {
                         ticket.Status = TicketStatus.Acik;
                     }
                 }
 
-                _logger.LogInformation("Destek talebine yanıt yazıldı. ID: {Id}, Yazan: {Username}, Rol: {Role}, Ek: {AttachmentName}", id, username, isAdmin ? "Admin" : "User", attachmentFileName);
+                _logger.LogInformation("Ticket {Id}'ye yanıt yazıldı. Yazan: {Username} ({Role})", id, username, isAdmin ? "Admin" : "User");
             }
 
-            // Durum güncellemesi yapılmışsa uygula
             if (status.HasValue)
             {
-                // Müşteri de durum güncelleyebilir (örn: kapatabilir). Admin her şeyi yapabilir.
+                
                 if (isAdmin || status.Value == TicketStatus.Kapandi || status.Value == TicketStatus.Cozuldu || status.Value == TicketStatus.Acik)
                 {
                     ticket.Status = status.Value;
                 }
             }
 
-            // Log changes as system messages in the conversation history
             if (isAdmin && oldCategory != ticket.Category)
             {
                 ticket.Messages.Add(new TicketMessage
@@ -460,22 +434,21 @@ namespace TicketSistemi.Controllers
                     SentDate = DateTime.Now
                 });
 
-                _logger.LogInformation("Destek talebi durumu güncellendi. ID: {Id}, Eski Durum: {OldStatus}, Yeni Durum: {NewStatus}, Güncelleyen: {Username}", id, oldStatus, ticket.Status, username);
+                _logger.LogInformation("Ticket {Id} durumu {OldStatus} -> {NewStatus} yapıldı. Yapan: {Username}", id, oldStatus, ticket.Status, username);
             }
 
             JsonDbManager.SaveTickets(tickets);
 
-            // SignalR Canlı Bildirimleri
             if (!string.IsNullOrWhiteSpace(message) || (attachment != null && attachment.Length > 0))
             {
                 if (isAdmin)
                 {
-                    // Müşteriye bildirim gönder
+                    
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebinize yeni bir yanıt eklendi! Konu: {ticket.Title}", "User");
                 }
                 else
                 {
-                    // Admin'e bildirim gönder
+                    
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebe müşteri tarafından yeni yanıt yazıldı! Konu: {ticket.Title}", "Admin");
                 }
             }

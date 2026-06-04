@@ -22,7 +22,6 @@ namespace TicketSistemi.Controllers
             _logger = logger;
         }
 
-        // 1. Login Sayfasını Göster (GET)
         [HttpGet]
         public IActionResult Login()
         {
@@ -33,7 +32,6 @@ namespace TicketSistemi.Controllers
             return View();
         }
 
-        // 2. Giriş İsteklerini Karşıla (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string username, string password)
@@ -61,18 +59,17 @@ namespace TicketSistemi.Controllers
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
-                _logger.LogInformation("Kullanıcı giriş yaptı: {Username}", user.Username);
+                _logger.LogInformation("Kullanıcı {Username} giriş yaptı.", user.Username);
 
                 return RedirectToAction("Index", "Ticket");
             }
 
-            _logger.LogWarning("Başarısız giriş denemesi. Kullanıcı adı: {Username}", username);
+            _logger.LogWarning("Başarısız giriş denemesi: {Username}", username);
 
             ViewBag.ErrorMessage = "Kullanıcı adı veya şifre hatalı!";
             return View();
         }
 
-        // 3. Kayıt Sayfasını Göster (GET)
         [HttpGet]
         public IActionResult Register()
         {
@@ -83,21 +80,20 @@ namespace TicketSistemi.Controllers
             return View();
         }
 
-        // 4. Kayıt İsteklerini Karşıla (POST)
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Register(string username, string password, string confirmPassword)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                _logger.LogWarning("Başarısız kayıt denemesi. Kullanıcı adı veya şifre boş.");
+                _logger.LogWarning("Kayıt başarısız: username veya password boş.");
                 ViewBag.ErrorMessage = "Kullanıcı adı ve şifre alanları zorunludur!";
                 return View();
             }
 
             if (password != confirmPassword)
             {
-                _logger.LogWarning("Başarısız kayıt denemesi. Şifreler uyuşmuyor. Kullanıcı adı: {Username}", username);
+                _logger.LogWarning("Kayıt başarısız: {Username} için şifreler eşleşmiyor.", username);
                 ViewBag.ErrorMessage = "Şifreler uyuşmuyor!";
                 return View();
             }
@@ -105,7 +101,7 @@ namespace TicketSistemi.Controllers
             var users = JsonDbManager.GetUsers();
             if (users.Any(u => string.Equals(u.Username, username.Trim(), StringComparison.OrdinalIgnoreCase)))
             {
-                _logger.LogWarning("Başarısız kayıt denemesi. Kullanıcı adı zaten alınmış: {Username}", username);
+                _logger.LogWarning("Kayıt başarısız: {Username} kullanıcısı zaten var.", username);
                 ViewBag.ErrorMessage = "Bu kullanıcı adı zaten alınmış!";
                 return View();
             }
@@ -115,26 +111,25 @@ namespace TicketSistemi.Controllers
                 Id = users.Any() ? users.Max(u => u.Id) + 1 : 1,
                 Username = username.Trim(),
                 PasswordHash = PasswordHelper.HashPassword(username.Trim(), password),
-                Role = "User" // Yeni kayıt olanlar varsayılan olarak "User" (Müşteri) olur.
+                Role = "User" 
             };
 
             users.Add(newUser);
             JsonDbManager.SaveUsers(users);
 
-            _logger.LogInformation("Yeni kullanıcı kaydedildi: {Username}", newUser.Username);
+            _logger.LogInformation("Yeni kullanıcı eklendi: {Username}", newUser.Username);
 
             TempData["SuccessMessage"] = "Kayıt başarıyla tamamlandı! Şimdi giriş yapabilirsiniz.";
             return RedirectToAction("Login");
         }
 
-        // 5. Çıkış Yap (POST veya GET)
         public async Task<IActionResult> Logout()
         {
             var username = User.Identity?.Name;
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             if (!string.IsNullOrEmpty(username))
             {
-                _logger.LogInformation("Kullanıcı çıkış yaptı: {Username}", username);
+                _logger.LogInformation("{Username} çıkış yaptı.", username);
             }
             return RedirectToAction("Index", "Ticket");
         }
