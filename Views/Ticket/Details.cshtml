@@ -245,12 +245,15 @@
                 <div class="card-body p-4">
                     <div class="chat-body" id="chatBody" style="max-height: 480px; overflow-y: auto; padding-right: 8px;">
                         <!-- İlk Açılış Mesajı (Talep Detayı) -->
-                        <div class="bubble bubble-left mb-3">
+                        @{
+                            var isCreatorMe = string.Equals(Model.CustomerName, User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                        }
+                        <div class="bubble @(isCreatorMe ? "bubble-right" : "bubble-left") mb-3">
                             <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-light border-opacity-10">
                                 <div class="avatar avatar-user">
                                     @((Model.CustomerName ?? "M").Substring(0, Math.Min(2, (Model.CustomerName ?? "M").Length)).ToUpper())
                                 </div>
-                                <span class="fw-bold small">
+                                <span class="fw-bold small @(isCreatorMe ? "text-white" : "")">
                                     @Model.CustomerName (Konu Sahibi)
                                 </span>
                             </div>
@@ -274,7 +277,7 @@
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="fs-4"><i class="bi bi-file-earmark-text"></i></span>
                                             <div class="overflow-hidden" style="max-width: 250px;">
-                                                <span class="d-block text-truncate fw-semibold small">@Model.AttachmentFileName</span>
+                                                <span class="d-block text-truncate fw-semibold small @(isCreatorMe ? "text-white" : "")">@Model.AttachmentFileName</span>
                                                 <a href="@Model.AttachmentPath" download class="btn btn-sm btn-light border py-1 px-2 mt-1" style="font-size: 0.75rem;">
                                                     <i class="bi bi-download"></i> Dosyayı İndir
                                                 </a>
@@ -304,12 +307,13 @@
                                 else
                                 {
                                     var isMsgAdmin = string.Equals(msg.Role, "Admin", StringComparison.OrdinalIgnoreCase);
-                                    <div class="bubble @(isMsgAdmin ? "bubble-right" : "bubble-left") mb-3">
+                                    var isMyMessage = string.Equals(msg.Sender, User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                                    <div class="bubble @(isMyMessage ? "bubble-right" : "bubble-left") mb-3">
                                         <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-light border-opacity-10">
                                             <div class="avatar @(isMsgAdmin ? "avatar-agent" : "avatar-user")">
                                                 @((msg.Sender ?? "U").Substring(0, Math.Min(2, (msg.Sender ?? "U").Length)).ToUpper())
                                             </div>
-                                            <span class="fw-bold small @(isMsgAdmin ? "text-white" : "")">
+                                            <span class="fw-bold small @(isMyMessage ? "text-white" : "")">
                                                 @msg.Sender @(isMsgAdmin ? "(Destek Temsilcisi)" : "(Müşteri)")
                                             </span>
                                         </div>
@@ -333,7 +337,7 @@
                                                     <div class="d-flex align-items-center gap-2">
                                                         <span class="fs-4"><i class="bi bi-file-earmark-text"></i></span>
                                                         <div class="overflow-hidden" style="max-width: 250px;">
-                                                            <span class="d-block text-truncate fw-semibold small @(isMsgAdmin ? "text-white" : "")">@msg.AttachmentFileName</span>
+                                                            <span class="d-block text-truncate fw-semibold small @(isMyMessage ? "text-white" : "")">@msg.AttachmentFileName</span>
                                                             <a href="@msg.AttachmentPath" download class="btn btn-sm btn-light border py-1 px-2 mt-1" style="font-size: 0.75rem;">
                                                                 <i class="bi bi-download"></i> Dosyayı İndir
                                                             </a>
