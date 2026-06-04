@@ -20,13 +20,20 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
                        ?? Environment.GetEnvironmentVariable("DATABASE_URL")
                        ?? Environment.GetEnvironmentVariable("DefaultConnection");
 
+// Determine if we should use PostgreSQL
+bool isPostgres = !string.IsNullOrEmpty(connectionString) && 
+                  (connectionString.StartsWith("postgres://") || 
+                   connectionString.StartsWith("postgresql://") || 
+                   connectionString.Contains("Host=") || 
+                   connectionString.Contains("Server=") || 
+                   connectionString.Contains("User Id="));
+
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    // Automatically detect if we are using PostgreSQL based on connection string prefix (works even in Development mode on Render)
-    if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
+    if (isPostgres)
     {
-        var npgsqlConnectionString = ConvertPostgresUrlToConnectionString(connectionString);
+        var npgsqlConnectionString = ConvertPostgresUrlToConnectionString(connectionString!);
         options.UseNpgsql(npgsqlConnectionString);
     }
     else
@@ -53,7 +60,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     
-    if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
+    if (isPostgres)
     {
         // Use EnsureCreated for PostgreSQL (database-agnostic, doesn't require provider-specific migrations)
         dbContext.Database.EnsureCreated();
@@ -114,7 +121,7 @@ static string ConvertPostgresUrlToConnectionString(string url)
     var username = Uri.UnescapeDataString(userInfo[0]);
     var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
     var host = uri.Host;
-    var port = uri.Port;
+    var port = uri.Port == -1 ? 5432 : uri.Port;
     var database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
 
     return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
