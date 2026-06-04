@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using TicketSistemi.Utils;
 using TicketSistemi.Jobs;
 
+// Enable legacy timestamp behavior for Npgsql to support local DateTime values (DateTime.Now) in PostgreSQL
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Logging
