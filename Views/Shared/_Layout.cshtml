@@ -294,9 +294,10 @@
                 bsToast = new bootstrap.Toast(toastEl, { delay: 5000 });
             }
 
-            window.showToast = function(message, targetRole) {
+            window.showToast = function(message, targetRole, targetUserId) {
                 const userRole = '@(User.Identity?.IsAuthenticated == true ? (User.IsInRole("Admin") ? "Admin" : "User") : "")';
                 const isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+                const currentUserId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
                 
                 if (!isAuthenticated) return;
                 
@@ -305,6 +306,11 @@
                     return;
                 }
                 if (targetRole === "User" && userRole === "Admin") {
+                    return;
+                }
+
+                // Filter user notifications so only the ticket owner receives them
+                if (targetRole === "User" && targetUserId && targetUserId.toString() !== currentUserId) {
                     return;
                 }
 
@@ -330,12 +336,12 @@
                 .withAutomaticReconnect()
                 .build();
 
-            connection.on("ReceiveNotification", function (message, targetRole) {
-                window.showToast(message, targetRole);
+            connection.on("ReceiveNotification", function (message, targetRole, targetUserId) {
+                window.showToast(message, targetRole, targetUserId);
                 
                 // Dispatch a global event for page-specific real-time updates
                 const event = new CustomEvent("ticketNotification", { 
-                    detail: { message: message, targetRole: targetRole } 
+                    detail: { message: message, targetRole: targetRole, targetUserId: targetUserId } 
                 });
                 window.dispatchEvent(event);
             });

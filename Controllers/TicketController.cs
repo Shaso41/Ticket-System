@@ -369,14 +369,14 @@ namespace TicketSistemi.Controllers
             if (!string.IsNullOrWhiteSpace(message) || (attachment != null && attachment.Length > 0))
             {
                 if (isAdmin)
-                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebinize yeni bir yanıt eklendi! Konu: {ticket.Title}", "User");
+                    await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebinize yeni bir yanıt eklendi! Konu: {ticket.Title}", "User", ticket.UserId.ToString());
                 else
                     await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talebe müşteri tarafından yeni yanıt yazıldı! Konu: {ticket.Title}", "Admin");
             }
             else if (status.HasValue && oldStatus != ticket.Status)
             {
                 string statusName = status.Value == TicketStatus.Acik ? "Açık" : status.Value == TicketStatus.Cozuldu ? "Çözüldü" : "Kapalı";
-                await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talep durumu güncellendi ({statusName}): {ticket.Title}", isAdmin ? "User" : "Admin");
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", $"Talep durumu güncellendi ({statusName}): {ticket.Title}", isAdmin ? "User" : "Admin", ticket.UserId.ToString());
             }
 
             return RedirectToAction("Details", new { id = id });

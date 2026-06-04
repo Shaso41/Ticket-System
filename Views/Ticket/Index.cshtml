@@ -455,6 +455,13 @@
             // Listen to real-time ticket notification event
             window.addEventListener("ticketNotification", function(e) {
                 const userRole = '@(User.Identity?.IsAuthenticated == true ? (User.IsInRole("Admin") ? "Admin" : "User") : "")';
+                const currentUserId = '@(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "")';
+                
+                // If it is targeted to a specific user, check if we are that user
+                if (e.detail.targetRole === "User" && e.detail.targetUserId && e.detail.targetUserId.toString() !== currentUserId) {
+                    return;
+                }
+                
                 if (e.detail.targetRole === userRole) {
                     refreshTicketList();
                 }
