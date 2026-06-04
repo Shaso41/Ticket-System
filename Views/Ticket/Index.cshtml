@@ -61,6 +61,10 @@
     .custom-table tr:hover {
         background-color: var(--bg-color) !important;
     }
+    
+    .clickable-row {
+        cursor: pointer;
+    }
 </style>
 
 <div class="container">
@@ -213,7 +217,7 @@
                         @foreach (var item in Model)
                         {
                             var cleanDesc = string.IsNullOrEmpty(item.Description) ? string.Empty : System.Text.RegularExpressions.Regex.Replace(item.Description, "<.*?>", string.Empty);
-                            <tr data-category="@((int)item.Category)" data-priority="@((int)item.Priority)" data-status="@((int)item.Status)">
+                            <tr class="clickable-row" data-href="@Url.Action("Details", "Ticket", new { id = item.Id })" data-category="@((int)item.Category)" data-priority="@((int)item.Priority)" data-status="@((int)item.Status)">
                                 <td class="ps-4 fw-bold" style="color: #4f46e5;">#@item.Id</td>
                                 <td class="title-cell">
                                     <span class="fw-bold d-block">@item.Title</span>
@@ -271,14 +275,6 @@
                                     <div class="d-inline-flex gap-1">
                                         @if (User.IsInRole("Admin"))
                                         {
-                                            @if (string.IsNullOrEmpty(item.AssignedAgent))
-                                            {
-                                                <form asp-action="Claim" asp-route-id="@item.Id" method="post" class="m-0">
-                                                    <button type="submit" class="btn btn-sm btn-success px-3 fw-bold rounded-pill shadow-sm">
-                                                        <i class="bi bi-person-fill-check"></i> Üstlen
-                                                    </button>
-                                                </form>
-                                            }
                                             <a asp-action="Details" asp-route-id="@item.Id" asp-fragment="replyForm" class="btn btn-sm btn-primary px-3 fw-bold rounded-pill shadow-sm">
                                                 <i class="bi bi-reply-fill"></i> Cevapla
                                             </a>
@@ -514,6 +510,20 @@
                     })
                     .catch(err => console.error("Error refreshing ticket list:", err));
             }
+
+            // Handle row click navigation (excluding interactive elements like buttons, links, forms)
+            document.addEventListener("click", function(e) {
+                const row = e.target.closest(".clickable-row");
+                if (row) {
+                    if (e.target.closest("form") || e.target.closest("a") || e.target.closest("button")) {
+                        return;
+                    }
+                    const href = row.getAttribute("data-href");
+                    if (href) {
+                        window.location.href = href;
+                    }
+                }
+            });
 
             filterTable();
         });
