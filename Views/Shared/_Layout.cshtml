@@ -332,6 +332,12 @@
 
             connection.on("ReceiveNotification", function (message, targetRole) {
                 window.showToast(message, targetRole);
+                
+                // Dispatch a global event for page-specific real-time updates
+                const event = new CustomEvent("ticketNotification", { 
+                    detail: { message: message, targetRole: targetRole } 
+                });
+                window.dispatchEvent(event);
             });
 
             connection.start().catch(err => console.error("SignalR Connection Error: ", err));

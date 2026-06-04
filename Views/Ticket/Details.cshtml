@@ -541,6 +541,48 @@
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
 
+            // Listen to real-time ticket notification event for chat updates
+            window.addEventListener("ticketNotification", function(e) {
+                const ticketTitle = "@Html.Raw(Model.Title)";
+                if (e.detail.message.includes(ticketTitle)) {
+                    refreshChatBody();
+                }
+            });
+
+            function refreshChatBody() {
+                fetch(window.location.href)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // 1. Replace chat body
+                        const newChatBody = doc.getElementById('chatBody');
+                        const currentChatBody = document.getElementById('chatBody');
+                        if (newChatBody && currentChatBody) {
+                            currentChatBody.innerHTML = newChatBody.innerHTML;
+                            // Auto scroll to bottom
+                            currentChatBody.scrollTop = currentChatBody.scrollHeight;
+                        }
+                        
+                        // 2. Replace timeline/history card if it exists
+                        const newTimeline = doc.querySelector('.timeline');
+                        const currentTimeline = document.querySelector('.timeline');
+                        if (newTimeline && currentTimeline) {
+                            currentTimeline.innerHTML = newTimeline.innerHTML;
+                        }
+                        
+                        // 3. Update the ticket status badge in header if it changed
+                        const statusBadgeSelector = '.chat-header .badge-acik, .chat-header .badge-cozuldu, .chat-header .badge-kapandi';
+                        const newStatusBadge = doc.querySelector(statusBadgeSelector);
+                        const currentStatusBadge = document.querySelector(statusBadgeSelector);
+                        if (newStatusBadge && currentStatusBadge) {
+                            currentStatusBadge.outerHTML = newStatusBadge.outerHTML;
+                        }
+                    })
+                    .catch(err => console.error("Error refreshing chat:", err));
+            }
+
             // Quill initialization with robustness / fallback
             let useQuill = false;
             let quill;

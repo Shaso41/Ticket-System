@@ -372,7 +372,7 @@
             const statusSelect = document.getElementById("statusFilter");
             const categorySelect = document.getElementById("categoryFilter");
             const prioritySelect = document.getElementById("priorityFilter");
-            const tableRows = document.querySelectorAll(".custom-table tbody tr");
+            let tableRows = document.querySelectorAll(".custom-table tbody tr");
 
             function filterTable() {
                 const searchText = searchInput.value.toLowerCase().trim();
@@ -455,6 +455,66 @@
             } else if (isAdmin) {
                 statusSelect.value = "1";
             }
+            
+            // Listen to real-time ticket notification event
+            window.addEventListener("ticketNotification", function(e) {
+                const userRole = '@(User.Identity?.IsAuthenticated == true ? (User.IsInRole("Admin") ? "Admin" : "User") : "")';
+                if (e.detail.targetRole === userRole) {
+                    refreshTicketList();
+                }
+            });
+
+            function refreshTicketList() {
+                fetch(window.location.href)
+                    .then(response => response.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // 1. Replace the table body
+                        const newTbody = doc.querySelector('.custom-table tbody');
+                        const currentTbody = document.querySelector('.custom-table tbody');
+                        if (newTbody && currentTbody) {
+                            currentTbody.innerHTML = newTbody.innerHTML;
+                        }
+                        
+                        // 2. Update the stats card counts
+                        const statsSelectors = [
+                            '.bg-gradient-indigo h2',
+                            '.bg-gradient-amber h2',
+                            '.bg-gradient-emerald h2',
+                            '.bg-gradient-slate h2'
+                        ];
+                        
+                        statsSelectors.forEach(selector => {
+                            const newEl = doc.querySelector(selector);
+                            const currentEl = document.querySelector(selector);
+                            if (newEl && currentEl) {
+                                currentEl.textContent = newEl.textContent;
+                            }
+                        });
+                        
+                        // 3. Re-query the table rows for filtering
+                        tableRows = document.querySelectorAll(".custom-table tbody tr");
+                        
+                        // 4. Re-apply the active filters
+                        filterTable();
+                        
+                        // 5. Update the Chart
+                        const openCount = parseInt(document.querySelector('.bg-gradient-amber h2')?.textContent) || 0;
+                        const solvedCount = parseInt(document.querySelector('.bg-gradient-emerald h2')?.textContent) || 0;
+                        const closedCount = parseInt(document.querySelector('.bg-gradient-slate h2')?.textContent) || 0;
+                        const total = openCount + solvedCount + closedCount;
+                        
+                        if (chart) {
+                            chart.data.datasets[0].data = total === 0 ? [1, 0, 0] : [openCount, solvedCount, closedCount];
+                            chart.data.datasets[0].backgroundColor = total === 0 ? ['#e2e8f0'] : ['#f59e0b', '#10b981', '#64748b'];
+                            chart.update();
+                        }
+                    })
+                    .catch(err => console.error("Error refreshing ticket list:", err));
+            }
+
             filterTable();
         });
 
